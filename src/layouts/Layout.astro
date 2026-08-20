@@ -1,7 +1,6 @@
 ---
 import type { Lang } from '../i18n';
 import LanguagePicker from '../components/LanguagePicker.astro';
-import Analytics from '@vercel/analytics/astro';
 
 const { lang } = Astro.props as { lang: Lang };
 ---
@@ -15,7 +14,6 @@ const { lang } = Astro.props as { lang: Lang };
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Astro i18n Demo</title>
-		<Analytics />
 	</head>
 	<body>
 		<slot />
