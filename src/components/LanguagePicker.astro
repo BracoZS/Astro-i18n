@@ -1,12 +1,10 @@
 ---
-import { languages } from '../i18n';
-
-const currentPage = Astro.url.pathname.split('/').filter(Boolean).slice(1).join('/');
+import { LOCALE_CODES, localizeUrl } from '../i18n';
 ---
 <ul class="language-picker" aria-label="Language selector">
-  {Object.keys(languages).map((lang) => (
+  {LOCALE_CODES.map((lang) => (
     <li>
-      <a href={`/${lang}/${currentPage}`}>{lang}</a>
+      <a href={localizeUrl(Astro.url, lang)}>{lang}</a>
     </li>
   ))}
 </ul>

@@ -1,17 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getTranslations, languages, getLangFromUrl } from '../../i18n';
+import { getI18n, getLocaleStaticPaths } from '../../i18n';
 
 // Generate a page for each supported language
-export function getStaticPaths() {
-    return Object.keys(languages).map((lang) => ({ params: { lang } }));
-}
+export const getStaticPaths = getLocaleStaticPaths;
 
-// Current language from URL or default
-const lang = getLangFromUrl(Astro.url);
-
-// Load translations for the current language
-const { site, hero } = getTranslations(lang);
+const i18n = await getI18n(Astro.url);
+const { site, hero } = i18n.messages;
 
 // Example variables for interpolation
 const visitorName = 'Astro';
@@ -19,7 +14,7 @@ const foo = 'i18n';
 const bar = 'TypeScript';
 ---
 
-<Layout lang={lang}>
+<Layout lang={i18n.locale}>
     <main class="page">
         <section class="hero">
             <p class="eyebrow">{site.tagline}</p>
@@ -31,7 +26,7 @@ const bar = 'TypeScript';
                 <p>{hero.example({ foo: foo, bar: bar })}</p>
             </div>
 
-            <a href={`/${lang}/about/`}>About</a>
+            <a href={i18n.href('/about/')}>About</a>
         </section>
     </main>
 </Layout>

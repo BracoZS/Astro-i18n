@@ -1,5 +1,5 @@
-import type { Translations } from '../schema';
-import { interpolate } from '../utils';
+import type { Translations } from '../config'
+import { interpolate } from '../utils'
 
 // Always use `satisfies Translations` to validate the translation structure.
 export const es =

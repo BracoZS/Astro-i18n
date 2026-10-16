@@ -1,132 +1,92 @@
 # Astro i18n
 
-A lightweight, typed i18n starter for Astro.
+A lightweight Astro i18n module with typed translations, localized routes, and URL helpers.
 
-Use it as a reference implementation or copy the `src/i18n` module directly into your own project and extend it as needed.
+## Features
 
-The UI is intentionally minimal so the focus stays on the translation structure, routing, and type-safe interpolation.
-
-It also includes helper functions for loading translations and interpolating values.
+- Translation shape inferred from the default locale and checked in other locales.
+- Locale dictionaries loaded on demand in Astro frontmatter.
+- Static pages generated for each configured locale.
+- Typed interpolation for strings such as `Hello {name}!`.
+- URL helpers preserve the current page, query, hash, and Astro `base` path.
 
 ## Structure
 
 ```txt
 src/i18n/
-  index.ts      # Public module exports
-  config.ts     # Available languages and default language
-  schema.ts     # Translation contract
-  utils.ts      # Translation helpers
-  locales/      # Locale dictionaries
+  config.ts     # Locales, default locale, and Astro i18n config
+  index.ts      # Public exports
+  utils.ts      # Dictionary, route, URL, and interpolation helpers
+  locales/      # One dictionary per locale
 ```
 
-## Features
+## Configuration
 
-- Typed locale dictionaries with `satisfies`.
-- Central language registry.
-- Type-safe interpolation: TypeScript reports missing or extra placeholders when translations differ between locales.
-- Default language redirect from `/`.
-- Static routes generated from available translations.
-- Simple interpolation helper for values like `{name}`.
+The supported locales, default language, and default-locale prefix are defined in `src/i18n/config.ts`. Change `PREFIX_DEFAULT_LOCALE` there; the exported `i18nConfig` passes the same setting to Astro:
 
-## Usage
+```js
+import { defineConfig } from 'astro/config';
+import { i18nConfig } from './src/i18n/config.ts';
 
-Start by defining the shape of your translations in `src/i18n/schema.ts`.
-
-```ts
-export interface Translations {
-  site: {
-    brand: string;
-    tagline: string;
-  };
-  hero: {
-    title: string;
-    description: Interpolation;   // type for interpolated strings
-  };
-}
+export default defineConfig({
+  i18n: i18nConfig,
+});
 ```
 
-Then create one file per locale inside `src/i18n/locales/`, for example `src/i18n/locales/en.ts`.
+The current locales are `en` and `es`. When `PREFIX_DEFAULT_LOCALE` is `false`, the default locale uses `/` and the other locales keep their prefixes (for example, `/es/`); use `[...lang]` because the default locale has no path segment. When it is `true`, both locales are prefixed (`/en/` and `/es/`); use `[lang]` or `[...lang]`.
 
-```ts
-import type { Translations } from '../schema';
-import { interpolate } from '../utils';
+## Translations
 
-export const en = {
-  site: {
-    brand: 'Jhon',
-    tagline: 'Do more',
-  },
-  hero: {
-    title: 'Welcome',
-    description: interpolate('Hello {name}!'),
-  },
-} satisfies Translations;
-```
+The shape of the default dictionary (`en`) defines the `Translations` type. Other locale files use `satisfies Translations` to check their keys and interpolation placeholders. For example, the existing dictionaries export `en` and `es` from `src/i18n/locales/`.
 
-> [!TIP]
-> If the placeholders inside `interpolate(...)` are not consistent across all locale files, TypeScript will flag every `.astro` file that uses that translation with a missing or extra parameter. This keeps all locales in sync automatically.
->
-> ```ts
-> // en.ts
-> someVariable: interpolate('Test {foo} and {bar}')
->
-> // es.ts (unexpected placeholder: {asd})
-> someVariable: interpolate('Test {foo} and {bar}. {asd}')
-> ```
-> ```astro
-> ---
-> const text = hero.someVariable({ foo: 'a', bar: 'b' });
-> ---
-> ```
->
-> ```astro
-> <p>{hero.someVariable({ foo: 'a', bar: 'b' })}</p>
->```
-> ```txt
-> ❌ Property 'asd' is missing in type ...
-> ```
-> TypeScript expects {foo, bar, asd} because es.ts requires it
+To add a locale:
 
+1. Add its code and display name to `LOCALES` in `src/i18n/config.ts`.
+2. Create `src/i18n/locales/<code>.ts` and export a dictionary named after its locale code, typed with `Translations`.
+3. Match the default dictionary's keys and interpolation placeholders.
 
-Register the locale in `src/i18n/config.ts`. And define your default language.
+To change the default locale, update `DEFAULT_LOCALE` and the type-only locale import used to define `Translations` in `config.ts`.
 
-```ts
-import { en } from './locales/en';
-import { es } from './locales/es';
+## Pages
 
-export const languages = {
-  en,
-  es,
-  // ...add here
-} as const;
-
-...
-
-export const defaultLang: Lang = 'en';
-```
-
-Import the public i18n entrypoint inside an Astro page or component. `getTranslations(lang)` loads the translations for the current language.
+Place localized pages under `src/pages/[lang]/` when `PREFIX_DEFAULT_LOCALE` is `true`; every locale has a required path segment. When it is `false`, use `src/pages/[...lang]/` so the default locale can omit that segment. `getLocaleStaticPaths` generates parameters to match the configured mode, and `getI18n(Astro.url)` loads the matching dictionary.
 
 ```astro
 ---
-import { getTranslations, getLangFromUrl, translations } from '../../i18n';
+import Layout from '../../layouts/Layout.astro';
+import { getI18n, getLocaleStaticPaths } from '../../i18n';
 
-// Get the language from the URL params (e.g. /en)
-const lang = getLangFromUrl(Astro.url);
-
-const { hero } = getTranslations(lang);
+export const getStaticPaths = getLocaleStaticPaths;
+const i18n = await getI18n(Astro.url);
 ---
 
-<h1>{hero.title}</h1>
-<p>{hero.description({ name: 'Astro' })}</p>
+<Layout lang={i18n.locale}>
+  <h1>{i18n.messages.hero.title}</h1>
+  <p>{i18n.messages.hero.description({ name: 'Astro' })}</p>
+  <a href={i18n.href('/about/')}>About</a>
+</Layout>
 ```
 
-For localized Astro pages, define a dynamic route segment `[lang]` (e.g. `src/pages/[lang]/index.astro`). This will generate one static page per locale.
+Use `i18n.locale` for the document's `<html lang>` attribute in the layout. Keep dictionary loading in frontmatter so translation data is not sent to client-side hydration.
 
-```ts
-import { languages } from '../../i18n';
+## Localized URLs
 
-export function getStaticPaths() {
-  return Object.keys(languages).map((lang) => ({ params: { lang } }));
-}
+Use `i18n.href(path, locale?)` for links in the current or another locale. Use `i18n.switchPageHref(locale)` or `localizeUrl(Astro.url, locale)` to switch languages while keeping the current page. `localizePath` and `localizeUrl` also account for Astro's `base` setting and preserve query strings and hashes.
+
+For example, render a link to the current page in each locale:
+
+```astro
+---
+import { getI18n, LOCALE_CODES } from '../../i18n';
+
+const i18n = await getI18n(Astro.url);
+---
+
+<nav aria-label="Language">
+  {LOCALE_CODES.map((locale) => (
+    <a href={i18n.switchPageHref(locale)}>{locale}</a>
+  ))}
+</nav>
 ```
+
+`getLocaleFromUrl` reads the locale from the first path segment and falls back to `en` when the path has no locale prefix. `getLocaleStaticPaths` and `localizePath` both follow `PREFIX_DEFAULT_LOCALE`, so generated routes and links stay in sync.

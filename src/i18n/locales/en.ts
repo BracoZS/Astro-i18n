@@ -1,7 +1,5 @@
-import type { Translations } from '../schema';
-import { interpolate } from '../utils';
+import { interpolate } from '../utils'
 
-// Always use `satisfies Translations` to validate the translation structure.
 export const en =
 {
     site:
@@ -23,4 +21,4 @@ export const en =
         title: 'About',
         description: 'This page demonstrates a simple localized route powered by the same i18n module.'
     }
-} satisfies Translations;
+}

@@ -1,11 +1,17 @@
+export { LOCALES, DEFAULT_LOCALE, PREFIX_DEFAULT_LOCALE, i18nConfig } from './config'
+export type { Translations } from './config'
+
 export {
-    defaultLang,
-    languages
-} from './config';
-export {
-    getLangFromUrl,
-    getTranslations,
+    getI18n,
+    getLocaleFromUrl,
+    getLocaleStaticPaths,
     interpolate,
-} from './utils';
-export type { Lang } from './config';
-export type { Interpolation } from './utils';
+    isLocaleCode,
+    stripLocale,
+    localizeUrl,
+    localizePath,
+    LOCALE_CODES,
+    type Locale,
+    type Template,
+} from './utils'
+export type { I18n } from './utils'
